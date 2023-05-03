@@ -145,7 +145,7 @@ impl Code {
     #[inline]
     pub fn to_string_with(&self, codize: &Codize) -> String {
         let mut str = self.to_vec_with(codize).join("\n");
-        if codize.trailing_newline && str.ends_with('\n') {
+        if codize.trailing_newline && !str.ends_with('\n') {
             str.push('\n');
         }
         str

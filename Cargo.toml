@@ -1,11 +1,11 @@
 [package]
 name = "codize"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "A simple library for encoding nested code blocks"
-repository = "https://github.com/iTNTPiston/codize"
+repository = "https://github.com/Pistonite/codize"
 license = "GPL-3.0"
-authors = ["iTNTPiston <terrabyte100k@gmail.com>"]
+authors = ["Pistonight <terrabyte100k@gmail.com>"]
 keywords = ["code", "block", "format", "nested", "print"]
 categories = ["value-formatting"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

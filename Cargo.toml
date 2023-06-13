@@ -1,6 +1,6 @@
 [package]
 name = "codize"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "A simple library for encoding nested code blocks"
 repository = "https://github.com/Pistonite/codize"

@@ -232,23 +232,20 @@ mod ut {
     }
 
     fn test_case_4() -> Code {
-        block!(
-            "while true {",
-            [
-                codeln!("let x = 1;"),
-                block!(
-                    "let b = {",
-                    [codeln!("1,"), codeln!("2,"), codeln!("3,")],
-                    "};"
-                ),
-                block!(
-                    "let b = {",
-                    [codeln!("1,"), codeln!("2,"), codeln!("3,"), codeln!("4,"),],
-                    "};"
-                ),
-            ],
-            "}"
-        )
+        let body = vec![
+            codeln!("let x = 1;"),
+            block!(
+                "let b = {",
+                [codeln!("1,"), codeln!("2,"), codeln!("3,")],
+                "};"
+            ),
+            block!(
+                "let b = {",
+                [codeln!("1,"), codeln!("2,"), codeln!("3,"), codeln!("4,"),],
+                "};"
+            ),
+        ];
+        dynblock!("while true {", body, "}")
     }
 
     #[test]

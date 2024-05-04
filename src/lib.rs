@@ -1,12 +1,14 @@
 //! # codize
 //! Simply library that helps with turning code into strings.
 //!
-//! See [`codeln!`] and [`block!`] macros for examples.
+//! See [`codeln!`], [`block!`] and [`block_concat!`] macros for examples.
 
 mod block;
 mod codeln;
+mod concat;
 
 /// Code block
+#[derive(Debug, Clone, PartialEq)]
 pub struct Block {
     /// If this block should be connected to the end of the previous block
     /// (for example, `else {`)
@@ -19,13 +21,21 @@ pub struct Block {
     pub end: String,
 }
 
+impl Block {
+    fn size_hint(&self) -> usize {
+        let body_size: usize = self.body.iter().map(|code| code.size_hint()).sum();
+        body_size + 2
+    }
+}
+
 impl From<Block> for Code {
     fn from(block: Block) -> Self {
-        Code::Block(block)
+        Code::Block(Box::new(block))
     }
 }
 
 /// Code enum
+#[derive(Debug, Clone, PartialEq)]
 pub enum Code {
     /// A line of code.
     ///
@@ -33,7 +43,9 @@ pub enum Code {
     /// It will be automatically inserted when formatting with [`Codize`]
     Line(String),
     /// A block of code. See [`Block`]
-    Block(Block),
+    Block(Box<Block>),
+    /// Concatenation of multiple code sections
+    Concat(Vec<Code>),
 }
 
 /// Codize formatter
@@ -134,13 +146,28 @@ impl std::fmt::Display for Code {
 }
 
 impl Code {
+    pub fn block(block: Block) -> Self {
+        block.into()
+    }
+
+    /// Should the code be put on the same line as the previous code
     #[inline]
     fn should_connect(&self) -> bool {
         match self {
-            Code::Line(_) => false,
             Code::Block(block) => block.connect,
+            _ => false,
         }
     }
+
+    /// Get the upperbound for the line count of the code
+    fn size_hint(&self) -> usize {
+        match self {
+            Code::Line(line) => line.len(),
+            Code::Block(block) => block.size_hint(),
+            Code::Concat(codes) => codes.iter().map(|code| code.size_hint()).sum(),
+        }
+    }
+
     /// Convert the code to a [`String`] with the given formatting
     #[inline]
     pub fn to_string_with(&self, codize: &Codize) -> String {
@@ -154,21 +181,35 @@ impl Code {
     ///
     /// Note that the vectors won't contain the new line characters, and the `trailing_newline` option is ignored.
     pub fn to_vec_with(&self, codize: &Codize) -> Vec<String> {
+        let mut out = Vec::with_capacity(self.size_hint());
+        self.append_to_vec_with(codize, &mut out);
+        out
+    }
+
+    /// Append the code to a vector of [`String`]s with the given formatting
+    ///
+    /// Note that the vectors won't contain the new line characters, and the `trailing_newline` option is ignored.
+    pub fn append_to_vec_with(&self, codize: &Codize, out: &mut Vec<String>) {
         match self {
-            Code::Line(line) => vec![line.to_owned()],
+            Code::Line(line) => out.push(line.to_owned()),
+            Code::Concat(codes) => {
+                for code in codes {
+                    code.append_to_vec_with(codize, out);
+                }
+            }
             Code::Block(block) => {
                 let should_inline = (codize.inline_condition)(block);
-                let Block {
-                    start, body, end, ..
-                } = block;
-                let mut lines = vec![start.clone()];
+                let start = &block.start;
+                let body = &block.body;
+                let end = &block.end;
+                out.push(start.clone());
 
                 for code in body {
                     let sub_lines = code.to_vec_with(codize);
                     let should_connect = should_inline || code.should_connect();
 
                     let skip = if should_connect {
-                        let last = lines.last_mut().unwrap();
+                        let last = out.last_mut().unwrap();
                         last.push(' ');
                         last.push_str(sub_lines.first().unwrap());
                         1
@@ -177,18 +218,16 @@ impl Code {
                     };
 
                     for line in sub_lines.into_iter().skip(skip) {
-                        lines.push(format!("{:>indent$}{}", "", line, indent = codize.indent));
+                        out.push(format!("{:>indent$}{}", "", line, indent = codize.indent));
                     }
                 }
                 if should_inline {
-                    let last = lines.last_mut().unwrap();
+                    let last = out.last_mut().unwrap();
                     last.push(' ');
                     last.push_str(end);
                 } else {
-                    lines.push(end.clone());
+                    out.push(end.clone());
                 }
-
-                lines
             }
         }
     }

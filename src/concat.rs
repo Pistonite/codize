@@ -50,23 +50,18 @@ mod test {
     fn mixed() {
         let code = block_concat![
             codeln!("Hello, World!"),
-            block!("if (x) {", [
-                codeln!("y();")
-            ], "}"),
+            block!("if (x) {", [codeln!("y();")], "}"),
             codeln!(""),
-            block!("if (x2) {", [
-                codeln!("y2();")
-            ], "}"),
+            block!("if (x2) {", [codeln!("y2();")], "}"),
         ];
-        assert_eq!(code, Code::Concat(vec![
-            codeln!("Hello, World!"),
-            block!("if (x) {", [
-                codeln!("y();")
-            ], "}"),
-            codeln!(),
-            block!("if (x2) {", [
-                codeln!("y2();")
-            ], "}"),
-        ]));
+        assert_eq!(
+            code,
+            Code::Concat(vec![
+                codeln!("Hello, World!"),
+                block!("if (x) {", [codeln!("y();")], "}"),
+                codeln!(),
+                block!("if (x2) {", [codeln!("y2();")], "}"),
+            ])
+        );
     }
 }

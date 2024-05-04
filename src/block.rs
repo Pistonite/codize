@@ -48,7 +48,7 @@
 #[macro_export]
 macro_rules! block {
     ($start:literal, [ $( $body:expr ),* $(,)? ] , $end:literal) => {
-        $crate::Code::Block($crate::Block {
+        $crate::Code::block($crate::Block {
             connect: false,
             start: $start.to_owned(),
             body: vec![ $( $body ),* ],
@@ -56,7 +56,7 @@ macro_rules! block {
         })
     };
     (> $start:literal, [ $( $body:expr ),* $(,)? ] , $end:literal) => {
-        $crate::Code::Block($crate::Block {
+        $crate::Code::block($crate::Block {
             connect: true,
             start: $start.to_owned(),
             body: vec![ $( $body ),* ],
@@ -64,7 +64,7 @@ macro_rules! block {
         })
     };
     ($start:expr, [ $( $body:expr ),* $(,)? ] , $end:literal) => {
-        $crate::Code::Block($crate::Block {
+        $crate::Code::block($crate::Block {
             connect: false,
             start: $start,
             body: vec![ $( $body ),* ],
@@ -72,7 +72,7 @@ macro_rules! block {
         })
     };
     (> $start:expr, [ $( $body:expr ),* $(,)? ] , $end:literal) => {
-        $crate::Code::Block($crate::Block {
+        $crate::Code::block($crate::Block {
             connect: true,
             start: $start,
             body: vec![ $( $body ),* ],
@@ -80,7 +80,7 @@ macro_rules! block {
         })
     };
     ($start:literal, [ $( $body:expr ),* $(,)? ] , $end:expr) => {
-        $crate::Code::Block($crate::Block {
+        $crate::Code::block($crate::Block {
             connect: false,
             start: $start.to_owned(),
             body: vec![ $( $body ),* ],
@@ -88,7 +88,7 @@ macro_rules! block {
         })
     };
     (> $start:literal, [ $( $body:expr ),* $(,)? ] , $end:expr) => {
-        $crate::Code::Block($crate::Block {
+        $crate::Code::block($crate::Block {
             connect: true,
             start: $start.to_owned(),
             body: vec![ $( $body ),* ],
@@ -96,7 +96,7 @@ macro_rules! block {
         })
     };
     ($start:expr, [ $( $body:expr ),* $(,)? ] , $end:expr) => {
-        $crate::Code::Block($crate::Block {
+        $crate::Code::block($crate::Block {
             connect: false,
             start: $start,
             body: vec![ $( $body ),* ],
@@ -104,7 +104,7 @@ macro_rules! block {
         })
     };
     (> $start:expr, [ $( $body:expr ),* $(,)? ] , $end:expr) => {
-        $crate::Code::Block($crate::Block {
+        $crate::Code::block($crate::Block {
             connect: true,
             start: $start,
             body: vec![ $( $body ),* ],
@@ -144,7 +144,7 @@ macro_rules! block {
 #[macro_export]
 macro_rules! dynblock {
     ($start:literal, $body:expr, $end:literal) => {
-        $crate::Code::Block($crate::Block {
+        $crate::Code::block($crate::Block {
             connect: false,
             start: $start.to_owned(),
             body: $body,
@@ -152,7 +152,7 @@ macro_rules! dynblock {
         })
     };
     (> $start:literal, $body:expr, $end:literal) => {
-        $crate::Code::Block($crate::Block {
+        $crate::Code::block($crate::Block {
             connect: true,
             start: $start.to_owned(),
             body: $body,
@@ -160,7 +160,7 @@ macro_rules! dynblock {
         })
     };
     ($start:expr, $body:expr, $end:literal) => {
-        $crate::Code::Block($crate::Block {
+        $crate::Code::block($crate::Block {
             connect: false,
             start: $start,
             body: $body,
@@ -168,7 +168,7 @@ macro_rules! dynblock {
         })
     };
     (> $start:expr, $body:expr, $end:literal) => {
-        $crate::Code::Block($crate::Block {
+        $crate::Code::block($crate::Block {
             connect: true,
             start: $start,
             body: $body,
@@ -176,7 +176,7 @@ macro_rules! dynblock {
         })
     };
     ($start:literal, $body:expr, $end:expr) => {
-        $crate::Code::Block($crate::Block {
+        $crate::Code::block($crate::Block {
             connect: false,
             start: $start,
             body: $body,
@@ -184,7 +184,7 @@ macro_rules! dynblock {
         })
     };
     (> $start:literal, $body:expr, $end:expr) => {
-        $crate::Code::Block($crate::Block {
+        $crate::Code::block($crate::Block {
             connect: true,
             start: $start.to_owned(),
             body: $body,
@@ -192,7 +192,7 @@ macro_rules! dynblock {
         })
     };
     ($start:expr, $body:expr, $end:expr) => {
-        $crate::Code::Block($crate::Block {
+        $crate::Code::block($crate::Block {
             connect: false,
             start: $start,
             body: $body,
@@ -200,7 +200,7 @@ macro_rules! dynblock {
         })
     };
     (> $start:expr, $body:expr, $end:expr) => {
-        $crate::Code::Block($crate::Block {
+        $crate::Code::block($crate::Block {
             connect: true,
             start: $start,
             body: $body,
@@ -208,3 +208,4 @@ macro_rules! dynblock {
         })
     };
 }
+

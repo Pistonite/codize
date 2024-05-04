@@ -1,10 +1,10 @@
 [package]
 name = "codize"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2021"
 description = "A simple library for encoding nested code blocks"
 repository = "https://github.com/Pistonite/codize"
-license = "GPL-3.0"
+license = "UNLICENSE"
 authors = ["Pistonight <terrabyte100k@gmail.com>"]
 keywords = ["code", "block", "format", "nested", "print"]
 categories = ["value-formatting"]

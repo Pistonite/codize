@@ -86,22 +86,31 @@ pub trait FormatCode {
         out
     }
     /// Emit self with the format in the given output context
-    fn format_into_vec_with(&self, 
-        format: &Format, out: &mut Vec<String>, connect: bool
-        , indent: &str
+    fn format_into_vec_with(
+        &self,
+        format: &Format,
+        out: &mut Vec<String>,
+        connect: bool,
+        indent: &str,
     );
     /// Upperbound for the line count of the code for pre-allocating. Return 0 to skip
     fn size_hint(&self) -> usize;
 }
 
-impl ToString for Code {
-    fn to_string(&self) -> String {
-        self.format()
+impl std::fmt::Display for Code {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.format())
     }
 }
 
 impl FormatCode for Code {
-    fn format_into_vec_with(&self, format: &Format, out: &mut Vec<String>, connect: bool, indent: &str) {
+    fn format_into_vec_with(
+        &self,
+        format: &Format,
+        out: &mut Vec<String>,
+        connect: bool,
+        indent: &str,
+    ) {
         match self {
             Code::Line(line) => append_line(out, line, connect, indent),
             Code::Block(body) => body.format_into_vec_with(format, out, connect, indent),
@@ -121,9 +130,8 @@ impl FormatCode for Code {
 }
 
 /// Helper function to append one line to the output within the given context
-pub(crate) fn append_line(out: &mut Vec<String>, line: &str, connect: bool, indent: &str) 
-{
-    if connect{
+pub(crate) fn append_line(out: &mut Vec<String>, line: &str, connect: bool, indent: &str) {
+    if connect {
         if let Some(last) = out.last_mut() {
             if !last.is_empty() {
                 last.push(' ');
@@ -157,7 +165,6 @@ impl Code {
             _ => false,
         }
     }
-
 }
 
 #[cfg(test)]
@@ -179,28 +186,30 @@ mod test {
             "fn main() {",
             [
                 cblock!("if (foo) {", ["println!(\"Hello, world!\");"], "}"),
-                cblock!("else {", [
-                    format!("bar({});", "giz")
-                ], "}").connected(),
+                cblock!("else {", [format!("bar({});", "giz")], "}").connected(),
             ],
             "}"
-        ).into()
+        )
+        .into()
     }
 
-    fn test_case_4(f1: fn(&Block) -> bool, f2: fn(&List) -> bool) -> Code 
-    {
+    fn test_case_4(f1: fn(&Block) -> bool, f2: fn(&List) -> bool) -> Code {
         let body = vec![
             Code::from("let x = 1;"),
             cblock!(
                 "let b = {",
                 [clist!("," => ["1", "2", "3"]).inline_when(f2)],
                 "};"
-            ).inline_when(f1).into(),
+            )
+            .inline_when(f1)
+            .into(),
             cblock!(
                 "let b = {",
                 [clist!("," => ["1", "2", "3", "4"]).inline_when(f2)],
                 "};"
-            ).inline_when(f1).into(),
+            )
+            .inline_when(f1)
+            .into(),
         ];
         cblock!("while true {", body, "}").into()
     }

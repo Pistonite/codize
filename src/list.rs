@@ -38,9 +38,9 @@ impl List {
     }
 
     /// Create a new code list
-    pub fn new<TSep, TBody>(sep: TSep, body: TBody) -> Self 
-where
-    TSep: ToString,
+    pub fn new<TSep, TBody>(sep: TSep, body: TBody) -> Self
+    where
+        TSep: ToString,
         TBody: IntoIterator,
         TBody::Item: Into<Code>,
     {
@@ -65,8 +65,7 @@ where
     }
 
     /// Set a condition for displaying the block as one line
-    pub fn inline_when(mut self, condition: fn(&List) -> bool) -> Self
-    {
+    pub fn inline_when(mut self, condition: fn(&List) -> bool) -> Self {
         self.inline_condition = Some(condition);
         self
     }
@@ -113,9 +112,9 @@ impl From<List> for Code {
     }
 }
 
-impl ToString for List {
-    fn to_string(&self) -> String {
-        self.format()
+impl std::fmt::Display for List {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.format())
     }
 }
 
@@ -124,7 +123,13 @@ impl FormatCode for List {
         self.concat_body.size_hint()
     }
 
-    fn format_into_vec_with(&self, format: &Format, out: &mut Vec<String>, connect: bool, indent: &str) {
+    fn format_into_vec_with(
+        &self,
+        format: &Format,
+        out: &mut Vec<String>,
+        connect: bool,
+        indent: &str,
+    ) {
         let should_inline = self.should_inline();
 
         // if first item is appended
@@ -135,7 +140,7 @@ impl FormatCode for List {
 
         let mut previous_size = out.len();
         let initial_size = previous_size;
-        
+
         for code in self.body().iter().filter(|c| !c.is_empty()) {
             // append separator if needed
             if let Some(last) = out.last_mut() {
@@ -144,13 +149,14 @@ impl FormatCode for List {
                 }
             }
             let connect = if first_appended {
-            should_inline || (previous_allow_connect && {
-                // allow connect if the item is first, not block, or is non-inline block
-                    match code {
-                    Code::Block(b) => !b.should_inline(),
-                    _ => true
-                }
-            })
+                should_inline
+                    || (previous_allow_connect && {
+                        // allow connect if the item is first, not block, or is non-inline block
+                        match code {
+                            Code::Block(b) => !b.should_inline(),
+                            _ => true,
+                        }
+                    })
             } else {
                 // for first, inline if connect
                 connect
@@ -164,7 +170,7 @@ impl FormatCode for List {
             previous_size = new_size;
             first_appended = true;
         }
-        
+
         let should_trail = match self.trailing {
             Trailing::IfMultiLine => previous_size > initial_size + 1,
             Trailing::Always => true,
@@ -197,7 +203,7 @@ impl FormatCode for List {
 /// ], ")");
 /// assert_eq!(expected, code.to_string());
 ///
-/// let expected = 
+/// let expected =
 /// "call_something(
 ///     a,
 ///     b,

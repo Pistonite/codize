@@ -30,7 +30,6 @@ impl Concat {
     pub fn is_empty(&self) -> bool {
         self.body.is_empty()
     }
-
 }
 
 impl Deref for Concat {
@@ -59,16 +58,16 @@ impl From<Concat> for Code {
 impl<T> From<T> for Concat
 where
     T: IntoIterator,
-    T::Item: Into<Code>
+    T::Item: Into<Code>,
 {
     fn from(body: T) -> Self {
         Concat::new(body)
     }
 }
 
-impl ToString for Concat {
-    fn to_string(&self) -> String {
-        self.format()
+impl std::fmt::Display for Concat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.format())
     }
 }
 
@@ -77,7 +76,13 @@ impl FormatCode for Concat {
         self.body.iter().map(|code| code.size_hint()).sum()
     }
 
-    fn format_into_vec_with(&self, format: &Format, out: &mut Vec<String>, connect: bool, indent: &str) {
+    fn format_into_vec_with(
+        &self,
+        format: &Format,
+        out: &mut Vec<String>,
+        connect: bool,
+        indent: &str,
+    ) {
         let mut iter = self.body.iter();
         if let Some(first) = iter.next() {
             first.format_into_vec_with(format, out, connect, indent);
@@ -88,8 +93,6 @@ impl FormatCode for Concat {
     }
 }
 
-/// Macro for creating [`Concat`]s
-///
 /// If you need to convert an iterator of sections (such as a `Vec<Code>`) to a `Code`, you can
 /// just use `into()` on the iterator.
 ///

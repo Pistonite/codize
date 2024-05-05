@@ -35,13 +35,9 @@ impl Block {
     }
 
     /// Create a new code block
-    pub fn new<
-        TStart,
-        TBody,
-        TEnd
-    >(start: TStart, body: TBody, end: TEnd) -> Self 
-where
-    TStart: ToString,
+    pub fn new<TStart, TBody, TEnd>(start: TStart, body: TBody, end: TEnd) -> Self
+    where
+        TStart: ToString,
         TEnd: ToString,
         TBody: IntoIterator,
         TBody::Item: Into<Code>,
@@ -62,8 +58,7 @@ where
     }
 
     /// Set a condition for displaying the block as one line
-    pub fn inline_when(mut self, condition: fn(&Block) -> bool) -> Self
-    {
+    pub fn inline_when(mut self, condition: fn(&Block) -> bool) -> Self {
         self.inline_condition = Some(condition);
         self
     }
@@ -103,9 +98,9 @@ impl From<Block> for Code {
     }
 }
 
-impl ToString for Block {
-    fn to_string(&self) -> String {
-        self.format()
+impl std::fmt::Display for Block {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.format())
     }
 }
 
@@ -115,7 +110,13 @@ impl FormatCode for Block {
         self.concat_body.size_hint() + 2
     }
 
-    fn format_into_vec_with(&self, format: &Format, out: &mut Vec<String>, connect: bool, indent: &str) {
+    fn format_into_vec_with(
+        &self,
+        format: &Format,
+        out: &mut Vec<String>,
+        connect: bool,
+        indent: &str,
+    ) {
         let connect = self.connect || connect;
         crate::append_line(out, &self.start, connect, indent);
         let should_inline = self.should_inline();
@@ -221,14 +222,15 @@ mod test {
 
     #[test]
     fn different_types() {
-        let code = cblock!("fn main() {", [
-            "foo",
-            "bar".to_string(),
-            cblock!("if (x) {", [
-                "baz",
-                "qux".to_string(),
-            ], "}"),
-        ], "}");
+        let code = cblock!(
+            "fn main() {",
+            [
+                "foo",
+                "bar".to_string(),
+                cblock!("if (x) {", ["baz", "qux".to_string(),], "}"),
+            ],
+            "}"
+        );
         let expected = indoc! {"
             fn main() {
                 foo
@@ -244,12 +246,8 @@ mod test {
     #[test]
     fn iteratable() {
         let body = vec![
-            cblock!("if (x()) {", [
-                "bar();"
-            ], "}"),
-            cblock!("else if (y) {", [
-                "baz();"
-            ], "}").connected(),
+            cblock!("if (x()) {", ["bar();"], "}"),
+            cblock!("else if (y) {", ["baz();"], "}").connected(),
         ];
         let code = cblock!("fn foo(y: bool) {", body, "}");
         let expected = indoc! {"
@@ -270,13 +268,10 @@ mod test {
     #[test]
     fn inline_condition() {
         let body = vec![
-            cblock!("if (x()) {", [
-                "bar();"
-            ], "}").inline_when(is_one_thing),
-            cblock!("else if (y) {", [
-                "baz();",
-                "baz();"
-            ], "}").connected().inline_when(is_one_thing),
+            cblock!("if (x()) {", ["bar();"], "}").inline_when(is_one_thing),
+            cblock!("else if (y) {", ["baz();", "baz();"], "}")
+                .connected()
+                .inline_when(is_one_thing),
         ];
         let code = cblock!("fn foo(y: bool) {", body, "}");
         let expected = indoc! {"
@@ -287,7 +282,5 @@ mod test {
                 }
             }"};
         assert_eq!(expected, code.to_string());
-
     }
 }
-

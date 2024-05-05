@@ -93,8 +93,13 @@ impl FormatCode for Concat {
     }
 }
 
-/// If you need to convert an iterator of sections (such as a `Vec<Code>`) to a `Code`, you can
-/// just use `into()` on the iterator.
+/// Macro for creating [`Concat`]s
+///
+/// ### Note
+/// When passing in 1 argument, it needs to be an iterator of sections (such as a `Vec<Code>`).
+/// This variant is the same as calling `into()` or `Concat::from()`.
+///
+/// For 2 or more arguments, they are concatenated into a new [`Concat`] instance.
 ///
 /// # Examples
 /// ```
@@ -121,10 +126,13 @@ impl FormatCode for Concat {
 #[macro_export]
 macro_rules! cconcat {
     () => {
-        $crate::Code::from($crate::Concat::empty())
+        $crate::Concat::empty()
+    };
+    ($body:expr)=> {
+        $crate::Concat::new($body)
     };
     ($( $body:expr ),* $(,)?) => {
-        $crate::Code::from($crate::Concat::new([ $($crate::Code::from($body)),* ]))
+        $crate::Concat::new([ $($crate::Code::from($body)),* ])
     };
 }
 
@@ -135,13 +143,13 @@ mod test {
     #[test]
     fn empty() {
         let code = cconcat![];
-        assert_eq!(code, Code::Concat(Concat::empty()));
+        assert_eq!(code, Concat::empty());
     }
 
     #[test]
     fn one() {
-        let code = cconcat!["Hello, World!"];
-        assert_eq!(code, Code::Concat(Concat::new(vec!["Hello, World!"])));
+        let code = cconcat![["Hello, World!"]];
+        assert_eq!(code, Concat::new(["Hello, World!"]));
     }
 
     #[test]
@@ -154,12 +162,12 @@ mod test {
         ];
         assert_eq!(
             code,
-            Code::Concat(Concat::new([
+            Concat::new([
                 Code::from("Hello, World!"),
                 cblock!("if (x) {", ["y();"], "}").into(),
                 "".into(),
                 cblock!("if (x2) {", ["y2();"], "}").into(),
-            ]))
+            ])
         );
     }
 }

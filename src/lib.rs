@@ -78,11 +78,17 @@ pub trait FormatCode {
     }
     /// Emit self with the format as a vector of lines
     fn format_vec_with(&self, format: &Format) -> Vec<String> {
-        let mut out = match self.size_hint() {
+        let size_hint = self.size_hint();
+        let mut out = match size_hint {
             0 => Vec::new(),
             n => Vec::with_capacity(n),
         };
         self.format_into_vec_with(format, &mut out, false, "");
+        // ensure no reallocation
+        #[cfg(test)]
+        if size_hint > 0 {
+            assert_eq!(out.capacity(), size_hint);
+        }
         out
     }
     /// Emit self with the format in the given output context

@@ -23,3 +23,14 @@ tasks:
     desc: Run tests in watch mode
     cmds:
     - cargo watch -x test
+
+  doc:
+    desc: Run and serve cargo doc
+    cmds:
+    - cargo doc
+    - task: doc:serve
+
+  doc:serve:
+    dir: target/doc
+    cmds:
+    - python -m http.server 8000

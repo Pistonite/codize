@@ -1,8 +1,8 @@
 [package]
 name = "codize"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
-description = "A simple library for encoding nested code blocks"
+description = "Simple, language-agnostic library that pretty-prints code for your code-generation tool."
 repository = "https://github.com/Pistonite/codize"
 license = "Unlicense"
 authors = ["Pistonight <terrabyte100k@gmail.com>"]
@@ -15,3 +15,7 @@ exclude = [
 ]
 
 [dependencies]
+derivative = "2.2.0"
+
+[dev-dependencies]
+indoc = "2.0.5"

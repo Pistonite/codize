@@ -3,8 +3,10 @@ version: '3'
 tasks:
   check:
     desc: Check for issues
+    vars:
+      CLIPPY_ARGS: -D warnings -D clippy::todo
     cmds:
-    - cargo clippy --all-features --all-targets -- -D warnings -D clippy::todo
+    - cargo clippy --all-features --all-targets -- {{.CLIPPY_ARGS}}
     - cargo fmt --check
 
   fix:
@@ -16,3 +18,8 @@ tasks:
     desc: Run tests
     cmds:
     - cargo test
+
+  dev:
+    desc: Run tests in watch mode
+    cmds:
+    - cargo watch -x test

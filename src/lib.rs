@@ -1,329 +1,284 @@
-//! # codize
-//! Simply library that helps with turning code into strings.
-//!
-//! See [`codeln!`], [`block!`] and [`block_concat!`] macros for examples.
+#![doc = include_str!("../README.md")]
 
 mod block;
-mod codeln;
+pub use block::Block;
 mod concat;
+pub use concat::Concat;
+mod list;
+pub use list::{List, Trailing};
 
-/// Code block
-#[derive(Debug, Clone, PartialEq)]
-pub struct Block {
-    /// If this block should be connected to the end of the previous block
-    /// (for example, `else {`)
-    pub connect: bool,
-    /// The start of the block (for example, `if (x) {`)
-    pub start: String,
-    /// The body of the block. Usually the body is the part that gets indented
-    pub body: Vec<Code>,
-    /// The end of the block (for example, `}`)
-    pub end: String,
-}
-
-impl Block {
-    fn size_hint(&self) -> usize {
-        let body_size: usize = self.body.iter().map(|code| code.size_hint()).sum();
-        body_size + 2
-    }
-}
-
-impl From<Block> for Code {
-    fn from(block: Block) -> Self {
-        Code::Block(Box::new(block))
-    }
-}
-
-/// Code enum
-#[derive(Debug, Clone, PartialEq)]
+/// Code structure
+///
+/// You should use the macros or `into` conversion instead of constructing this directly.
+#[derive(Debug, PartialEq)]
 pub enum Code {
     /// A line of code.
-    ///
-    /// The content shouldn't contain the newline `\n` character.
-    /// It will be automatically inserted when formatting with [`Codize`]
     Line(String),
     /// A block of code. See [`Block`]
     Block(Box<Block>),
-    /// Concatenation of multiple code sections
-    Concat(Vec<Code>),
+    /// Concatenation of multiple code sections. See [`Concat`]
+    Concat(Concat),
+    /// A list of code segments with separator. See [`List`]
+    List(List),
 }
 
-/// Codize formatter
-///
-/// This turns a [`Code`] into a string, joined with newlines.
-///
-/// There are formatting options you can set through its methods or by directly constructing it.
-pub struct Codize {
-    /// The number of spaces to indent per level.
-    pub indent: usize,
-    /// A function that determines whether a block should be inlined.
-    ///
-    /// When the block is inlined, the body is put on the same line as the start and the end,
-    /// and the body will be separated by a space instead of a newline.
-    /// For example, you can set the block to inline if it only contains one line of code.
-    ///
-    /// Note that this function is called on blocks of all levels.
-    /// You can use the block starting and ending strings to do basic filtering
-    pub inline_condition: Box<dyn Fn(&Block) -> bool>,
-    /// If a trailing newline should be added when there is none
-    pub trailing_newline: bool,
-}
-
-impl Default for Codize {
-    /// Create the default formatting
-    ///
-    /// The default formatting is:
-    /// - Indentation of 4 spaces
-    /// - Blocks are never inlined
-    /// - No trailing newline
-    fn default() -> Self {
-        Self {
-            indent: 4,
-            inline_condition: Box::new(|_| false),
-            trailing_newline: false,
-        }
+impl From<String> for Code {
+    fn from(x: String) -> Self {
+        Code::Line(x)
     }
 }
 
-impl Codize {
+impl From<&str> for Code {
+    fn from(x: &str) -> Self {
+        Code::Line(x.to_owned())
+    }
+}
+
+/// Formatting options
+#[derive(derivative::Derivative)]
+#[derivative(Debug, PartialEq, Default)]
+pub struct Format {
+    /// The number of spaces to indent per level. `-1` to use tabs
+    #[derivative(Default(value = "4"))]
+    pub indent: i32,
+}
+
+impl Format {
     /// Set indent
-    #[inline]
-    pub fn indent(indent: usize) -> Self {
+    pub fn indent(indent: i32) -> Self {
         Self::default().set_indent(indent)
     }
     /// Set indent
     #[inline]
-    pub fn set_indent(mut self, indent: usize) -> Self {
+    pub fn set_indent(mut self, indent: i32) -> Self {
         self.indent = indent;
         self
     }
-    /// Set the blocks to always inline
-    #[inline]
-    pub fn always_inline() -> Self {
-        Self::default().set_always_inline()
+    /// Set indent to tabs
+    pub fn indent_tab() -> Self {
+        Self::indent(-1)
     }
-    /// Set the blocks to always inline
+    /// Set indent to tabs
     #[inline]
-    pub fn set_always_inline(mut self) -> Self {
-        self.inline_condition = Box::new(|_| true);
-        self
-    }
-    /// Set the inline condition
-    #[inline]
-    pub fn inline_when<F>(condition: F) -> Self
-    where
-        F: Fn(&Block) -> bool + 'static,
-    {
-        Self::default().set_inline_when(condition)
-    }
-    /// Set the inline condition
-    #[inline]
-    pub fn set_inline_when<F>(mut self, condition: F) -> Self
-    where
-        F: Fn(&Block) -> bool + 'static,
-    {
-        self.inline_condition = Box::new(condition);
-        self
-    }
-    /// Set if there should be trailing newline
-    #[inline]
-    pub fn trailing_newline(trailing_newline: bool) -> Self {
-        Self::default().set_trailing_newline(trailing_newline)
-    }
-    /// Set if there should be trailing newline
-    #[inline]
-    pub fn set_trailing_newline(mut self, trailing_newline: bool) -> Self {
-        self.trailing_newline = trailing_newline;
-        self
+    pub fn set_indent_tab(self) -> Self {
+        self.set_indent(-1)
     }
 }
 
-impl std::fmt::Display for Code {
-    /// Format the code with the default formatting
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_string_with(&Codize::default()))
+/// Enable different formatting options for [`Code`] structures
+pub trait FormatCode {
+    /// Emit self with the default format as a string
+    fn format(&self) -> String {
+        self.format_with(&Format::default())
+    }
+
+    /// Emit self with the format as a string
+    fn format_with(&self, format: &Format) -> String {
+        self.format_vec_with(format).join("\n")
+    }
+    /// Emit self with the format as a vector of lines
+    fn format_vec_with(&self, format: &Format) -> Vec<String> {
+        let mut out = match self.size_hint() {
+            0 => Vec::new(),
+            n => Vec::with_capacity(n),
+        };
+        self.format_into_vec_with(format, &mut out, false, "");
+        out
+    }
+    /// Emit self with the format in the given output context
+    fn format_into_vec_with(&self, 
+        format: &Format, out: &mut Vec<String>, connect: bool
+        , indent: &str
+    );
+    /// Upperbound for the line count of the code for pre-allocating. Return 0 to skip
+    fn size_hint(&self) -> usize;
+}
+
+impl ToString for Code {
+    fn to_string(&self) -> String {
+        self.format()
+    }
+}
+
+impl FormatCode for Code {
+    fn format_into_vec_with(&self, format: &Format, out: &mut Vec<String>, connect: bool, indent: &str) {
+        match self {
+            Code::Line(line) => append_line(out, line, connect, indent),
+            Code::Block(body) => body.format_into_vec_with(format, out, connect, indent),
+            Code::Concat(body) => body.format_into_vec_with(format, out, connect, indent),
+            Code::List(body) => body.format_into_vec_with(format, out, connect, indent),
+        }
+    }
+
+    fn size_hint(&self) -> usize {
+        match self {
+            Code::Line(_) => 1,
+            Code::Block(body) => body.size_hint(),
+            Code::Concat(body) => body.size_hint(),
+            Code::List(body) => body.size_hint(),
+        }
+    }
+}
+
+/// Helper function to append one line to the output within the given context
+pub(crate) fn append_line(out: &mut Vec<String>, line: &str, connect: bool, indent: &str) 
+{
+    if connect{
+        if let Some(last) = out.last_mut() {
+            if !last.is_empty() {
+                last.push(' ');
+            }
+            last.push_str(line.as_ref());
+            return;
+        }
+    }
+    if indent.is_empty() {
+        out.push(line.to_owned());
+    } else {
+        out.push(format!("{indent}{line}"));
     }
 }
 
 impl Code {
-    pub fn block(block: Block) -> Self {
-        block.into()
-    }
-
-    /// Should the code be put on the same line as the previous code
-    #[inline]
-    fn should_connect(&self) -> bool {
+    /// Should the code be displayed in one line
+    pub fn should_inline(&self) -> bool {
         match self {
-            Code::Block(block) => block.connect,
+            Code::Block(block) => block.should_inline(),
+            Code::List(list) => list.should_inline(),
             _ => false,
         }
     }
 
-    /// Get the upperbound for the line count of the code
-    fn size_hint(&self) -> usize {
+    /// Get if this structure will generate any code or not (empty = no code)
+    pub fn is_empty(&self) -> bool {
         match self {
-            Code::Line(line) => line.len(),
-            Code::Block(block) => block.size_hint(),
-            Code::Concat(codes) => codes.iter().map(|code| code.size_hint()).sum(),
+            Code::Concat(concat) => concat.is_empty(),
+            Code::List(list) => list.is_empty(),
+            _ => false,
         }
     }
 
-    /// Convert the code to a [`String`] with the given formatting
-    #[inline]
-    pub fn to_string_with(&self, codize: &Codize) -> String {
-        let mut str = self.to_vec_with(codize).join("\n");
-        if codize.trailing_newline && !str.ends_with('\n') {
-            str.push('\n');
-        }
-        str
-    }
-    /// Convert the code to a vector of [`String`]s with the given formatting
-    ///
-    /// Note that the vectors won't contain the new line characters, and the `trailing_newline` option is ignored.
-    pub fn to_vec_with(&self, codize: &Codize) -> Vec<String> {
-        let mut out = Vec::with_capacity(self.size_hint());
-        self.append_to_vec_with(codize, &mut out);
-        out
-    }
-
-    /// Append the code to a vector of [`String`]s with the given formatting
-    ///
-    /// Note that the vectors won't contain the new line characters, and the `trailing_newline` option is ignored.
-    pub fn append_to_vec_with(&self, codize: &Codize, out: &mut Vec<String>) {
-        match self {
-            Code::Line(line) => out.push(line.to_owned()),
-            Code::Concat(codes) => {
-                for code in codes {
-                    code.append_to_vec_with(codize, out);
-                }
-            }
-            Code::Block(block) => {
-                let should_inline = (codize.inline_condition)(block);
-                let start = &block.start;
-                let body = &block.body;
-                let end = &block.end;
-                out.push(start.clone());
-
-                for code in body {
-                    let sub_lines = code.to_vec_with(codize);
-                    let should_connect = should_inline || code.should_connect();
-
-                    let skip = if should_connect {
-                        let last = out.last_mut().unwrap();
-                        last.push(' ');
-                        last.push_str(sub_lines.first().unwrap());
-                        1
-                    } else {
-                        0
-                    };
-
-                    for line in sub_lines.into_iter().skip(skip) {
-                        out.push(format!("{:>indent$}{}", "", line, indent = codize.indent));
-                    }
-                }
-                if should_inline {
-                    let last = out.last_mut().unwrap();
-                    last.push(' ');
-                    last.push_str(end);
-                } else {
-                    out.push(end.clone());
-                }
-            }
-        }
-    }
 }
 
 #[cfg(test)]
-mod ut {
+mod test {
+    use indoc::indoc;
+
     use super::*;
 
     fn test_case_1() -> Code {
-        Block {
-            connect: false,
-            start: "{".to_owned(),
-            body: vec![],
-            end: "}".to_owned(),
-        }
-        .into()
+        cblock!("{", [], "}").into()
     }
 
     fn test_case_2() -> Code {
-        Block {
-            connect: false,
-            start: "trait A {".to_owned(),
-            body: vec![codeln!("fn a();")],
-            end: "}".to_owned(),
-        }
-        .into()
+        cblock!("trait A {", ["fn a();"], "}").into()
     }
 
     fn test_case_3() -> Code {
-        block!(
+        cblock!(
             "fn main() {",
             [
-                block!("if (foo) {", [codeln!("println!(\"Hello, world!\");")], "}"),
-                block!(> "else {", [
-                codeln!(f "bar({});", "giz")
-            ], "}"),
+                cblock!("if (foo) {", ["println!(\"Hello, world!\");"], "}"),
+                cblock!("else {", [
+                    format!("bar({});", "giz")
+                ], "}").connected(),
             ],
             "}"
-        )
+        ).into()
     }
 
-    fn test_case_4() -> Code {
+    fn test_case_4(f1: fn(&Block) -> bool, f2: fn(&List) -> bool) -> Code 
+    {
         let body = vec![
-            codeln!("let x = 1;"),
-            block!(
+            Code::from("let x = 1;"),
+            cblock!(
                 "let b = {",
-                [codeln!("1,"), codeln!("2,"), codeln!("3,")],
+                [clist!("," => ["1", "2", "3"]).inline_when(f2)],
                 "};"
-            ),
-            block!(
+            ).inline_when(f1).into(),
+            cblock!(
                 "let b = {",
-                [codeln!("1,"), codeln!("2,"), codeln!("3,"), codeln!("4,"),],
+                [clist!("," => ["1", "2", "3", "4"]).inline_when(f2)],
                 "};"
-            ),
+            ).inline_when(f1).into(),
         ];
-        dynblock!("while true {", body, "}")
+        cblock!("while true {", body, "}").into()
     }
 
     #[test]
     fn test1() {
-        let code: Code = test_case_1();
+        let code = test_case_1();
         assert_eq!("{\n}", code.to_string());
-        assert_eq!(
-            "{\n}\n",
-            code.to_string_with(&Codize::trailing_newline(true))
-        );
     }
 
     #[test]
     fn test2() {
-        let code: Code = test_case_2();
-        assert_eq!(
-            "trait A {\n   fn a();\n}",
-            code.to_string_with(&Codize::indent(3))
-        );
-        assert_eq!(
-            "trait A { fn a(); }\n",
-            code.to_string_with(&Codize::trailing_newline(true).set_always_inline())
-        );
+        let code = test_case_2();
+        let expected = indoc! {"
+            trait A {
+               fn a();
+            }"};
+        assert_eq!(expected, code.format_with(&Format::indent(3)));
+        let expected = indoc! {"
+            trait A {
+            \tfn a();
+            }"};
+        assert_eq!(expected, code.format_with(&Format::indent_tab()));
     }
 
     #[test]
     fn test3() {
         let code: Code = test_case_3();
-        assert_eq!("fn main() {\n   if (foo) {\n      println!(\"Hello, world!\");\n   } else {\n      bar(giz);\n   }\n}", code.to_string_with(&Codize::indent(3)));
+        let expected = indoc! {"
+            fn main() {
+                if (foo) {
+                    println!(\"Hello, world!\");
+                } else {
+                    bar(giz);
+                }
+            }"};
+        assert_eq!(expected, code.to_string());
     }
 
     #[test]
     fn test4() {
-        let code: Code = test_case_4();
-        assert_eq!("while true {\n  let x = 1;\n  let b = {\n    1,\n    2,\n    3,\n  };\n  let b = {\n    1,\n    2,\n    3,\n    4,\n  };\n}", code.to_string_with(&Codize::indent(2)));
-        let cond_inlined = code.to_string_with(
-            &Codize::indent(2)
-                .set_inline_when(|block| block.start.starts_with("let") && block.body.len() == 3),
-        );
-        assert_eq!("while true {\n  let x = 1;\n  let b = { 1, 2, 3, };\n  let b = {\n    1,\n    2,\n    3,\n    4,\n  };\n}", cond_inlined);
+        fn should_inline_list(list: &List) -> bool {
+            list.body().len() == 3
+        }
+        let code = test_case_4(Block::should_inline_intrinsic, should_inline_list);
+        let expected = indoc! {"
+            while true {
+                let x = 1;
+                let b = { 1, 2, 3 };
+                let b = {
+                    1,
+                    2,
+                    3,
+                    4,
+                };
+            }"};
+        assert_eq!(expected, code.to_string());
+
+        let code = test_case_4(Block::should_inline_intrinsic, |_| true);
+        let expected = indoc! {"
+            while true {
+                let x = 1;
+                let b = { 1, 2, 3 };
+                let b = { 1, 2, 3, 4 };
+            }"};
+        assert_eq!(expected, code.to_string());
+
+        let code = test_case_4(|_| false, |_| true);
+        let expected = indoc! {"
+            while true {
+                let x = 1;
+                let b = {
+                    1, 2, 3
+                };
+                let b = {
+                    1, 2, 3, 4
+                };
+            }"};
+        assert_eq!(expected, code.to_string());
     }
 }

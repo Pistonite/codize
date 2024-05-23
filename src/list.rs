@@ -76,6 +76,12 @@ impl List {
         self
     }
 
+    /// Set the inline condition to be always false
+    pub fn never_inlined(mut self) -> Self {
+        self.inline_condition = Some(|_| false);
+        self
+    }
+
     /// Get the body of the block
     #[inline]
     pub fn body(&self) -> &[Code] {

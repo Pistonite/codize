@@ -1,6 +1,6 @@
 [package]
 name = "codize"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 description = "Simple, language-agnostic library that pretty-prints code for your code-generation tool."
 repository = "https://github.com/Pistonite/codize"

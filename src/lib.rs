@@ -139,11 +139,17 @@ impl FormatCode for Code {
 pub(crate) fn append_line(out: &mut Vec<String>, line: &str, connect: bool, indent: &str) {
     if connect {
         if let Some(last) = out.last_mut() {
-            if !last.is_empty() {
+            if !last.is_empty() && last != indent {
                 last.push(' ');
             }
             last.push_str(line.as_ref());
             return;
+        }
+    }
+    // when making a new line, make sure the previous line is not indented if it's only whitespaces
+    if let Some(last) = out.last_mut() {
+        if last.trim().is_empty() {
+            "".clone_into(last);
         }
     }
     if indent.is_empty() {

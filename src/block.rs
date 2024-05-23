@@ -69,6 +69,12 @@ impl Block {
         self
     }
 
+    /// Set the inline condition to be always false
+    pub fn never_inlined(mut self) -> Self {
+        self.inline_condition = Some(|_| false);
+        self
+    }
+
     /// Get the body of the block
     #[inline]
     pub fn body(&self) -> &[Code] {
@@ -280,6 +286,37 @@ mod test {
                     baz();
                     baz();
                 }
+            }"};
+        assert_eq!(expected, code.to_string());
+    }
+
+    #[test]
+    fn no_end_chaining() {
+        let code = cblock! {
+            "{",
+            [
+                "",
+                cblock!{
+                    "if xxx:",
+                    ["foo()"],
+                    ""
+                }.connected(),
+                cblock!{
+                    "elif yyy:",
+                    ["bar()"],
+                    ""
+                }.connected(),
+            ],
+            "}"
+        }
+        .never_inlined();
+        let expected = indoc! {"
+            {
+                if xxx:
+                    foo()
+                elif yyy:
+                    bar()
+
             }"};
         assert_eq!(expected, code.to_string());
     }

@@ -10,7 +10,7 @@ pub use list::{List, Trailing};
 /// Code structure
 ///
 /// You should use the macros or `into` conversion instead of constructing this directly.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Code {
     /// A line of code.
     Line(String),

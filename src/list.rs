@@ -2,7 +2,7 @@ use crate::{Code, Concat, Format, FormatCode};
 
 /// A list of code segments separated by a separator
 #[derive(derivative::Derivative)]
-#[derivative(Debug, PartialEq)]
+#[derivative(Debug, Clone, PartialEq)]
 pub struct List {
     /// The items in the list
     concat_body: Concat,

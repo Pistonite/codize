@@ -2,7 +2,7 @@ use crate::{Code, Concat, Format, FormatCode};
 
 /// A block of code with a starting line, ending line, and an indented body
 #[derive(derivative::Derivative)]
-#[derivative(Debug, PartialEq)]
+#[derivative(Debug, Clone, PartialEq)]
 pub struct Block {
     /// If this block should be connected to the end of a previous block
     /// (for example, `else {`)

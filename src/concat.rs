@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 use crate::{Code, Format, FormatCode};
 
 /// A concatenation of multiple code sections
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Concat {
     body: Vec<Code>,
 }
